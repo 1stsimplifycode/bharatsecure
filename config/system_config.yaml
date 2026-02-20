@@ -1,0 +1,96 @@
+# BharatSecure Touchless HCI - System Configuration
+# Cost: $0 (all open-source, edge-only)
+
+system:
+  name: "BharatSecure Touchless HCI"
+  version: "1.0.0"
+  platform: "jetson_nano"          # jetson_nano | x86 | raspberry_pi
+  debug: false
+  log_level: "INFO"                # DEBUG | INFO | WARNING | ERROR
+
+camera:
+  device_id: 0                     # /dev/video0 on Jetson
+  width: 640
+  height: 480
+  fps: 30
+  backend: "python"                # python | cpp (C++ optimizer)
+  # For Jetson CSI camera:
+  # pipeline: "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink"
+
+mediapipe:
+  max_num_hands: 1
+  min_detection_confidence: 0.75
+  min_tracking_confidence: 0.60
+  model_complexity: 0              # 0 = lite (fastest on Jetson)
+
+feature_engineering:
+  num_landmarks: 21
+  dimensions: 3                    # x, y, z per landmark → 63-dim vector
+  smoothing_window: 5              # Temporal smoothing frames
+  normalize: true
+
+ai:
+  model_path: "src/ai/models/gesture_model.tflite"
+  model_hash_path: "src/ai/models/gesture_model.sha256"
+  num_gesture_classes: 5
+  inference_threads: 2             # Jetson Nano: 2-4 threads
+
+gestures:
+  classes:
+    0: "stop"
+    1: "play"
+    2: "volume_up"
+    3: "volume_down"
+    4: "mute"
+
+security:
+  confidence_threshold: 0.90       # Zero-trust min confidence
+  stability_frames: 5              # Frames gesture must be stable
+  liveness:
+    enabled: true
+    motion_threshold: 0.01         # Minimum Δ between frames
+    window: 10
+  anomaly_detection:
+    enabled: true
+    z_score_threshold: 3.0
+    history_size: 100
+  rate_limiting:
+    max_commands_per_second: 2
+    cooldown_ms: 500
+  model_integrity:
+    verify_on_startup: true
+    verify_interval_seconds: 300   # Re-verify every 5 min
+  replay_detection:
+    enabled: true
+    history_size: 50
+
+federated:
+  enabled: false                   # Set true for multi-device deployment
+  server_host: "0.0.0.0"
+  server_port: 8765
+  client_id: "jetson_node_01"
+  aggregation_interval_seconds: 3600  # 1 hour
+  differential_privacy:
+    enabled: true
+    epsilon: 1.0                   # Privacy budget
+    delta: 1.0e-5
+    noise_multiplier: 1.1
+    max_grad_norm: 1.0
+
+dashboard:
+  enabled: true
+  host: "0.0.0.0"
+  port: 5000
+  log_db_path: "logs/security_events.db"
+  max_events_displayed: 500
+
+tls:
+  enabled: false                   # Enable in production
+  cert_path: "certs/cert.pem"
+  key_path: "certs/key.pem"
+
+logging:
+  file_path: "logs/bharatsecure.log"
+  max_bytes: 10485760              # 10MB
+  backup_count: 5
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"

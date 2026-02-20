@@ -1,0 +1,38 @@
+# Jetson Nano Specific Configuration
+# Overrides values in system_config.yaml for Jetson Nano deployment
+
+jetson:
+  # Jetson Nano hardware specs
+  cpu: "Quad-core ARM Cortex-A57 @ 1.43 GHz"
+  gpu: "128-core Maxwell GPU"
+  ram: "4GB LPDDR4"
+  power: "5W | 10W (MAXN mode)"
+  storage: "microSD / eMMC"
+
+  # Performance tuning
+  power_mode: 0             # 0 = MAXN (10W), 1 = 5W
+  enable_jetson_clocks: true
+  cpu_affinity: [0, 1, 2, 3]  # Use all 4 cores
+
+  # Camera backend
+  preferred_camera: "csi"      # csi | usb
+  csi_pipeline: "nvarguscamerasrc"
+  csi_flip_method: 0           # 0 = no rotation
+
+  # TFLite inference
+  tflite_threads: 2
+  use_nnapi: true              # NNAPI delegate for GPU-accelerated inference
+  use_xnnpack: false           # XNNPACK for CPU optimisation (alternative)
+
+  # Memory management
+  disable_swap: true           # Disable swap for real-time performance
+  reserve_gpu_memory_mb: 512
+
+  # System monitoring
+  monitor_temperature: true
+  temp_warning_celsius: 80
+  temp_critical_celsius: 90
+
+  # Paths
+  nvpmodel_path: "/usr/sbin/nvpmodel"
+  jetson_clocks_path: "/usr/bin/jetson_clocks"

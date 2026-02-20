@@ -1,0 +1,71 @@
+# BharatSecure Touchless HCI — Dockerfile for NVIDIA Jetson Nano
+# Base: NVIDIA L4T (Linux for Tegra) with JetPack
+# Cost: $0 — all open-source images
+
+# Use official NVIDIA Jetson Nano base image
+# JetPack 4.6.x = L4T R32.7.x
+FROM nvcr.io/nvidia/l4t-base:r32.7.1
+
+LABEL maintainer="BharatSecure Team <PES University>"
+LABEL description="BharatSecure Touchless HCI — Zero-Trust Gesture Control"
+LABEL version="1.0.0"
+
+# ── Environment ───────────────────────────────────────────────────────────────
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV TF_CPP_MIN_LOG_LEVEL=2
+ENV OMP_NUM_THREADS=4
+
+WORKDIR /app
+
+# ── System dependencies ────────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.8 \
+    python3-pip \
+    python3-dev \
+    build-essential \
+    cmake \
+    libopencv-dev \
+    python3-opencv \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libgflags-dev \
+    libatlas-base-dev \
+    v4l-utils \
+    libv4l-dev \
+    ffmpeg \
+    pactl \
+    alsa-utils \
+    sqlite3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Python dependencies ────────────────────────────────────────────────────────
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir numpy==1.24.4 && \
+    pip3 install --no-cache-dir scikit-learn flask flask-cors flask-socketio \
+        eventlet pyyaml colorlog tqdm cryptography pandas python-dotenv \
+        requests
+
+# ── Optional: TFLite runtime for Jetson aarch64 ───────────────────────────────
+RUN pip3 install --no-cache-dir tflite-runtime 2>/dev/null || \
+    echo "TFLite not available; sklearn fallback will be used"
+
+# ── Copy application ───────────────────────────────────────────────────────────
+COPY . .
+
+# ── Create runtime directories ─────────────────────────────────────────────────
+RUN mkdir -p logs data/gestures/{stop,play,volume_up,volume_down,mute} \
+    src/ai/models certs
+
+# ── Expose dashboard port ──────────────────────────────────────────────────────
+EXPOSE 5000
+
+# ── Health check ───────────────────────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:5000/api/health || exit 1
+
+# ── Entry point ────────────────────────────────────────────────────────────────
+CMD ["python3", "main.py", "--config", "config/system_config.yaml", "--no-dashboard"]

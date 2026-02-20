@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BharatSecure — Security Dashboard</title>
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --surface: #111827;
+      --surface2: #1e2a3a;
+      --border: #1e3a5f;
+      --accent: #00c6ff;
+      --accent2: #0072ff;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0a0e1a 0%, #0d1b2e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    header h1 { font-size: 1.3rem; letter-spacing: 0.05em; }
+    header h1 span { color: var(--accent); }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(16,185,129,0.12); border: 1px solid var(--green);
+      border-radius: 999px; padding: 0.3rem 1rem; font-size: 0.8rem;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+           animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── Layout ── */
+    main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
+
+    /* ── Metrics Grid ── */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+               gap: 1rem; margin-bottom: 1.5rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+    }
+    .card-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase;
+                  letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    .card-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .card-value.green { color: var(--green); }
+    .card-value.red   { color: var(--red); }
+    .card-value.blue  { color: var(--accent); }
+    .card-value.yellow{ color: var(--yellow); }
+
+    /* ── Two-column layout ── */
+    .cols { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+
+    /* ── Section titles ── */
+    .section-title {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted); margin-bottom: 0.8rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    /* ── Threat Map ── */
+    .threat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .threat-item {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.82rem;
+    }
+    .badge {
+      font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.6rem;
+      border-radius: 999px; text-transform: uppercase;
+    }
+    .badge.blocked  { background: rgba(16,185,129,0.2); color: var(--green); border:1px solid var(--green); }
+    .badge.detected { background: rgba(245,158,11,0.2); color: var(--yellow); border:1px solid var(--yellow); }
+    .badge.active   { background: rgba(0,198,255,0.15); color: var(--accent);  border:1px solid var(--accent); }
+
+    /* ── Event Log ── */
+    .log-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .log-header {
+      padding: 0.8rem 1rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.82rem;
+    }
+    .log-body { max-height: 420px; overflow-y: auto; }
+    .log-entry {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid rgba(30,58,95,0.4);
+      display: grid; grid-template-columns: 80px 140px 1fr;
+      gap: 0.75rem; align-items: center; font-size: 0.78rem;
+      transition: background 0.15s;
+    }
+    .log-entry:hover { background: var(--surface2); }
+    .log-entry .time { color: var(--muted); font-family: monospace; }
+    .event-type { font-weight: 600; }
+    .event-type.COMMAND_EXECUTED  { color: var(--green); }
+    .event-type.LIVENESS_FAIL     { color: var(--red); }
+    .event-type.ANOMALY_DETECTED  { color: var(--yellow); }
+    .event-type.MODEL_INTEGRITY   { color: var(--red); }
+    .event-type.default           { color: var(--muted); }
+
+    /* ── Gauge ── */
+    .gauge-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.6rem; }
+    .gauge-label { font-size: 0.78rem; width: 110px; }
+    .gauge-bar { flex: 1; background: var(--surface2); border-radius: 999px; height: 8px; overflow: hidden; }
+    .gauge-fill { height: 100%; border-radius: 999px;
+                  background: linear-gradient(90deg, var(--accent2), var(--accent));
+                  transition: width 0.5s ease; }
+    .gauge-val { font-size: 0.75rem; width: 40px; text-align: right; color: var(--muted); }
+
+    /* ── Buttons ── */
+    .btn {
+      background: rgba(0,198,255,0.1); border: 1px solid var(--accent);
+      color: var(--accent); border-radius: 6px; padding: 0.35rem 0.9rem;
+      font-size: 0.75rem; cursor: pointer; transition: background 0.2s;
+    }
+    .btn:hover { background: rgba(0,198,255,0.25); }
+    .btn.danger { border-color: var(--red); color: var(--red);
+                  background: rgba(239,68,68,0.08); }
+    .btn.danger:hover { background: rgba(239,68,68,0.2); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 1.5rem;
+      color: var(--muted); font-size: 0.72rem;
+      border-top: 1px solid var(--border); margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🛡 <span>BharatSecure</span> Touchless HCI — Security Dashboard</h1>
+  <div style="display:flex;gap:1rem;align-items:center">
+    <span id="clock" style="font-size:0.8rem;color:var(--muted);font-family:monospace"></span>
+    <div class="status-pill"><span class="dot"></span>System Active</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Metrics Row -->
+  <div class="metrics" id="metrics">
+    <div class="card">
+      <div class="card-label">Commands Executed</div>
+      <div class="card-value green" id="stat-commands">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Liveness Blocks</div>
+      <div class="card-value red" id="stat-liveness">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Anomalies Detected</div>
+      <div class="card-value yellow" id="stat-anomaly">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total Events</div>
+      <div class="card-value blue" id="stat-total">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Platform</div>
+      <div class="card-value blue" style="font-size:0.9rem;margin-top:0.3rem">Jetson Nano</div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <!-- Left Column -->
+    <div>
+      <!-- Threat Status -->
+      <div class="section-title">Threat Coverage</div>
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="threat-grid">
+          <div class="threat-item">Static Replay <span class="badge blocked">Blocked</span></div>
+          <div class="threat-item">Video Replay <span class="badge blocked">Blocked</span></div>
+          <div class="threat-item">Adversarial Glove <span class="badge detected">Detected</span></div>
+          <div class="threat-item">Model Tampering <span class="badge detected">Detected</span></div>
+          <div class="threat-item">MITM Attack <span class="badge active">TLS</span></div>
+          <div class="threat-item">DoS / Flood <span class="badge blocked">Throttled</span></div>
+          <div class="threat-item">Biometric Leakage <span class="badge blocked">N/A</span></div>
+          <div class="threat-item">Fingerprint Clone <span class="badge blocked">N/A</span></div>
+        </div>
+      </div>
+
+      <!-- Security Layers -->
+      <div class="section-title">Security Layer Confidence</div>
+      <div class="card">
+        <div class="gauge-row">
+          <span class="gauge-label">Liveness</span>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:94%"></div></div>
+          <span class="gauge-val">94%</span>
+        </div>
+        <div class="gauge-row">
+          <span class="gauge-label">Anomaly Det.</span>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:88%"></div></div>
+          <span class="gauge-val">88%</span>
+        </div>
+        <div class="gauge-row">
+          <span class="gauge-label">Zero-Trust</span>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:100%"></div></div>
+          <span class="gauge-val">100%</span>
+        </div>
+        <div class="gauge-row">
+          <span class="gauge-label">Model Hash</span>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:100%"></div></div>
+          <span class="gauge-val">OK</span>
+        </div>
+        <div class="gauge-row">
+          <span class="gauge-label">Gesture Acc.</span>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:91%"></div></div>
+          <span class="gauge-val">91%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Event Log -->
+    <div>
+      <div class="section-title" style="justify-content:space-between">
+        <span>Security Event Log</span>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn" onclick="fetchEvents()">↻ Refresh</button>
+          <button class="btn danger" onclick="clearEvents()">✕ Clear</button>
+        </div>
+      </div>
+      <div class="log-container">
+        <div class="log-header">
+          <span>Live Event Stream</span>
+          <span id="event-count" style="color:var(--muted)">0 events</span>
+        </div>
+        <div class="log-body" id="log-body">
+          <div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.8rem">
+            No events yet. Start the BharatSecure system to see live events.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  BharatSecure Touchless HCI v1.0 &nbsp;|&nbsp; PES University &nbsp;|&nbsp;
+  Platform: NVIDIA Jetson Nano &nbsp;|&nbsp; Infrastructure Cost: $0/month
+</footer>
+
+<script>
+  // Clock
+  function updateClock() {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Fetch security events from Flask API
+  async function fetchEvents() {
+    try {
+      const res = await fetch('/api/events?limit=200');
+      const data = await res.json();
+      renderEvents(data.events);
+    } catch(e) {
+      console.warn('Could not reach API:', e);
+    }
+  }
+
+  async function fetchStats() {
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      document.getElementById('stat-commands').textContent = data.COMMAND_EXECUTED || 0;
+      document.getElementById('stat-liveness').textContent = data.LIVENESS_FAIL || 0;
+      document.getElementById('stat-anomaly').textContent  = data.ANOMALY_DETECTED || 0;
+      document.getElementById('stat-total').textContent    = data.total || 0;
+    } catch(e) {}
+  }
+
+  async function clearEvents() {
+    if (!confirm('Clear all security events?')) return;
+    await fetch('/api/clear', { method: 'POST' });
+    fetchEvents();
+    fetchStats();
+  }
+
+  function renderEvents(events) {
+    const body = document.getElementById('log-body');
+    document.getElementById('event-count').textContent = events.length + ' events';
+
+    if (!events.length) {
+      body.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.8rem">No events recorded yet.</div>';
+      return;
+    }
+
+    const typeClass = (t) => {
+      if (['COMMAND_EXECUTED','LIVENESS_FAIL','ANOMALY_DETECTED','MODEL_INTEGRITY'].includes(t)) return t;
+      return 'default';
+    };
+
+    const icons = {
+      COMMAND_EXECUTED: '✅',
+      LIVENESS_FAIL:    '🚫',
+      ANOMALY_DETECTED: '⚠️',
+      MODEL_INTEGRITY:  '🔴',
+    };
+
+    body.innerHTML = [...events].reverse().map(ev => `
+      <div class="log-entry">
+        <span class="time">${ev.timestamp ? ev.timestamp.slice(11,19) : '—'}</span>
+        <span class="event-type ${typeClass(ev.event_type)}">
+          ${icons[ev.event_type] || '•'} ${ev.event_type}
+        </span>
+        <span style="color:var(--muted)">${ev.detail || ''}</span>
+      </div>
+    `).join('');
+  }
+
+  // Auto-refresh every 3 seconds
+  fetchEvents();
+  fetchStats();
+  setInterval(() => { fetchEvents(); fetchStats(); }, 3000);
+</script>
+</body>
+</html>
